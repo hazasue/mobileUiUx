@@ -1,0 +1,18 @@
+{
+    "SejongLakePark":
+    {
+        "code":"SejongLakePark",
+        "name":"세종 호수 공원",
+        "address":"세종 세종특별자치시 다솜로 216",
+        "coordinates":[],
+        "rate":9.8
+    },
+    "BearTreePark":
+    {
+        "code":"BearTreePark",
+        "name":"베어트리 파크",
+        "address":"세종특별자치시 전동면 신송로 217",
+        "coordinates":[],
+        "rate":9.8
+    }
+}

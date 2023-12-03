@@ -1,0 +1,12 @@
+Font: Cafe24 Ssurround  Style: Bold
+Point Size: 81   SP/PD Ratio: 6.2%
+
+Characters included: 2491/2491
+Missing characters: 0
+Excluded characters: 0
+
+Characters missing from font file:
+----------------------------------------
+
+Characters excluded from packing:
+----------------------------------------

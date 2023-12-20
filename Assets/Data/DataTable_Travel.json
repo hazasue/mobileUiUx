@@ -14,5 +14,13 @@
         "address":"세종특별자치시 전동면 신송로 217",
         "coordinates":[],
         "rate":9.8
+    },
+    "GlobalTreeLand":
+    {
+        "code":"GlobalTreeLand",
+        "name":"국립 세종 수목원",
+        "address":"세종특별자치시 연기면 수목원로 136",
+        "coordinates":[],
+        "rate":9.8
     }
 }

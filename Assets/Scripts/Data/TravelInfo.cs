@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public class Travel
+public class TravelInfo
 {
     public string code;
     public string name;
@@ -11,7 +11,7 @@ public class Travel
     public List<int> coordinates;
     public float rate;
 
-    public Travel(string code, string name, string address, List<int> coordinates, float rate)
+    public TravelInfo(string code, string name, string address, List<int> coordinates, float rate)
     {
         this.code = code;
         this.name = name;

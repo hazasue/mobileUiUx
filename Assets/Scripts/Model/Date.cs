@@ -7,10 +7,13 @@ using TMPro;
 public class Date : MonoBehaviour
 {
     public TMP_Text dayText;
+    public TMP_Text dayTextToggle;
 
     public int year;
     public int month;
     public int day;
+
+    public GameObject toggle;
 
     private bool clicked;
 
@@ -21,26 +24,36 @@ public class Date : MonoBehaviour
         this.day = day;
         clicked = false;
 
-        if (day != 0) dayText.text = day.ToString();
+        toggle.SetActive(false);
+
+        if (day != 0)
+        {
+            dayText.text = day.ToString();
+            dayTextToggle.text = day.ToString();
+        }
     }
 
     public void Init()
     {
         day = 0;
         dayText.text = "";
+        dayTextToggle.text = "";
+        toggle.SetActive(false);
     }
 
     public void Clicked()
     {
         if (!clicked)
         {
-            clicked = true;
-            PlanManager.GetInstance().SelectDate(this);
+            clicked = PlanManager.GetInstance().SelectDate(this);
+            if (clicked) toggle.SetActive(true);
         }
         else
         {
-            clicked = false;
-            PlanManager.GetInstance().UnSelectDate(this);
+            clicked = PlanManager.GetInstance().UnSelectDate(this);
+            if (!clicked) toggle.SetActive(false);
         }
+
+        Debug.Log(clicked);
     }
 }

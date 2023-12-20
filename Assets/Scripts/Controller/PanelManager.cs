@@ -16,6 +16,8 @@ public class PanelManager : MonoBehaviour
     private const string PANEL_NAME_MAKE_PLAN = "makePlan";
     private const string PANEL_NAME_LOAD_PLAN = "loadPlan";
     private const string PANEL_NAME_FIND_TRAVEL = "findTravel";
+    private const string PANEL_NAME_TRAVEL_DETAIL = "detailTravel";
+    private const string PANEL_NAME_RECOMMEND_PLAN = "recommendPlan";
 
     private Stack<GameObject> panels;
 
@@ -28,6 +30,8 @@ public class PanelManager : MonoBehaviour
     public GameObject planCalendarPanel;
     public GameObject makePlanPanel;
     public GameObject findTravelPanel;
+    public GameObject travelDetailPanel;
+    public GameObject recommendPlanPanel;
 
     public Transform travelScreen;
     
@@ -88,7 +92,34 @@ public class PanelManager : MonoBehaviour
             
             case PANEL_NAME_FIND_TRAVEL:
                 tempObject = findTravelPanel;
+                PlanManager.GetInstance().InitFindTravelPanel();
                 break;
+            
+            case PANEL_NAME_RECOMMEND_PLAN:
+                tempObject = recommendPlanPanel;
+                break;
+
+            default:
+                Debug.Log("Invalid panel name: " + name);
+                return;
+        }
+
+        panels.Peek().SetActive(false);
+        
+        panels.Push(tempObject);
+        tempObject.SetActive(true);
+    }
+    
+    public void PushPanelToStack(string name, TravelInfo info)
+    {
+        GameObject tempObject = null;
+        switch (name)
+        {
+            case PANEL_NAME_TRAVEL_DETAIL:
+                travelDetailPanel.GetComponent<TravelInfoPanel>().Init(info.code, info.name, info.address, info.rate);
+                tempObject = travelDetailPanel;
+                break;
+                
 
             default:
                 Debug.Log("Invalid panel name: " + name);
@@ -141,10 +172,34 @@ public class PanelManager : MonoBehaviour
         }
         panels.Push(mainPanel);
         mainPanel.SetActive(true);
-        
-        mainViewport.localPosition = new Vector3(-index * DEFAULT_SCREEN_WIDTH, 0f, 0f);
-        mainToggle.localPosition = new Vector3(index * DEFAULT_SCREEN_WIDTH / 3, 0f, 0f);
+
+        StartCoroutine(slideMainToggle(new Vector3(-index * DEFAULT_SCREEN_WIDTH, 0f, 0f)));
         mainToggle.localScale = new Vector3(1f, 1f, 1f);
-        //mainViewport.localPosition = new Vector3(-index * Screen.width, 0f, 0f);
+    }
+
+    private IEnumerator slideMainToggle(Vector3 position)
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(Time.deltaTime);
+            mainViewport.localPosition = Vector3.Lerp(mainViewport.localPosition, position, 0.4f);
+            mainToggle.localPosition = Vector3.Lerp(mainToggle.localPosition, -position / 3, 0.4f);
+            if (Vector3.Distance(mainViewport.localPosition, position) <= DEFAULT_SCREEN_WIDTH / 36f)
+            {
+                mainViewport.localPosition = position;
+                mainToggle.localPosition = -position / 3;
+                yield break;
+            }
+        }
+    }
+
+    public void BackToMain()
+    {
+        for (int i = 0; i < panels.Count; i++)
+        {
+            panels.Pop().SetActive(false);
+        }
+        panels.Push(mainPanel);
+        mainPanel.SetActive(true);
     }
 }

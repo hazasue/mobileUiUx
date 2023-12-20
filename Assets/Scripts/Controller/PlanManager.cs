@@ -15,6 +15,7 @@ public class PlanManager : MonoBehaviour
     private const int DEFAULT_MONTHS_A_YEAR = 12;
     
     private List<PlanInfo> planInfos;
+    private List<PlanInfo> recommendPlanInfos;
 
     public GameObject planButton;
     public Transform viewport;
@@ -34,7 +35,20 @@ public class PlanManager : MonoBehaviour
     public GameObject addButtons;
     public GameObject infoBlock;
     public GameObject memoObject;
-    
+    public GameObject editObject;
+    public TMP_Text planName;
+
+    public Transform findTravelViewport;
+    public GameObject currentSearchButton;
+
+    public TravelInfo currentTravelDetail;
+
+    public Transform recommendPlanListViewport;
+    public GameObject recommend;
+
+    public GameObject editNameObject;
+    public TMP_InputField editNameText;
+
     void Awake()
     {
         init();
@@ -50,6 +64,7 @@ public class PlanManager : MonoBehaviour
         }
 
         planInfos = new List<PlanInfo>();
+        recommendPlanInfos = JsonManager.LoadJsonFile<List<PlanInfo>>(JsonManager.JSON_FILENAME_RECOMMEND_PLAN);;
         
         if (!File.Exists(Application.dataPath + "/Data/" + JsonManager.JSON_FILENAME_PLAN + ".json"))
             JsonManager.CreateJsonFile(JsonManager.JSON_FILENAME_PLAN, planInfos);
@@ -127,21 +142,23 @@ public class PlanManager : MonoBehaviour
         selectDay.text += " / 등록 완료";
     }
 
-    public void SelectDate(Date date)
+    public bool SelectDate(Date date)
     {
-        if (selectedDate.Count >= 2) return;
+        if (selectedDate.Count >= 2) return false;
         
         selectedDate.Add(date);
         sortSelectedDate();
         updateCalendarInfo();
+        return true;
     }
 
-    public void UnSelectDate(Date date)
+    public bool UnSelectDate(Date date)
     {
-        if (!selectedDate.Contains(date)) return;
+        if (!selectedDate.Contains(date)) return true;
         
         selectedDate.Remove(date);
         updateCalendarInfo();
+        return false;
     }
 
     private void updateCalendarInfo()
@@ -166,8 +183,10 @@ public class PlanManager : MonoBehaviour
 
         if (date2.year < date1.year) swapDate();
         else if (date2.month < date1.month
-                 && date2.year < date1.year) swapDate();
-        else if (date2.day < date1.day) swapDate();
+                 && date2.year == date1.year) swapDate();
+        else if (date2.month == date1.month
+                 && date2.year == date1.year
+                 && date2.day < date1.day) swapDate();
         else return;
     }
 
@@ -205,6 +224,8 @@ public class PlanManager : MonoBehaviour
         {
             Destroy(planListViewport.GetChild(i).gameObject);
         }
+
+        planName.text = planInfos[idx].planName;
         
         int index = 0;
         Dictionary<string, TravelInfo> datas = JsonManager.LoadJsonFile<Dictionary<string, TravelInfo>>(JsonManager.JSON_FILENAME_TRAVEL);
@@ -239,6 +260,57 @@ public class PlanManager : MonoBehaviour
         }
     }
 
+    public void InitRecommendPlan()
+    {
+        for (int i = recommendPlanListViewport.childCount - 1; i >= 0; i--)
+        {
+            Destroy(recommendPlanListViewport.GetChild(i).gameObject);
+        }
+        
+        int index = 0;
+        Dictionary<string, TravelInfo> datas = JsonManager.LoadJsonFile<Dictionary<string, TravelInfo>>(JsonManager.JSON_FILENAME_TRAVEL);
+        
+        for (int i = 0; i < recommendPlanInfos[0].countADay.Count; i++)
+        {
+            TMP_Text tempText = Instantiate(dayInfo, recommendPlanListViewport, true);
+            tempText.transform.localScale = new Vector3(1f, 1f, 1f);
+            tempText.text = $"{i + 1}일차";
+
+            for (int j = index; j < index + recommendPlanInfos[0].countADay[i]; j++)
+            {
+                foreach (TravelInfo data in datas.Values)
+                {
+                    if (recommendPlanInfos[0].names[j] != data.name) continue;
+ 
+                    GameObject tempObject = Instantiate(infoBlock,recommendPlanListViewport, true);
+                    tempObject.transform.localScale = new Vector3(1f, 1f, 1f);
+                    tempObject.GetComponent<Travel>().Init(data.code, data.name, "", "");
+                    break;
+                }
+            }
+
+            index += recommendPlanInfos[0].countADay[i];
+        }
+    }
+
+    public void LoadRecommendPlanInfo(int backCount)
+    {
+        planInfos[currentPlanIdx].planName = recommendPlanInfos[0].planName;
+        for (int i = 0; i < recommendPlanInfos[0].countADay.Count; i++)
+        {
+            planInfos[currentPlanIdx].countADay[i] = recommendPlanInfos[0].countADay[i];
+        }
+        
+        planInfos[currentPlanIdx].names = recommendPlanInfos[0].names;
+
+        for (int i = 0; i < backCount; i++)
+        {
+            PanelManager.GetInstance().PopPanelFromStack();
+        }
+        
+        initPlan(currentPlanIdx);
+    }
+
     public void LoadPlanInfo()
     {
         currentPlanIdx = EventSystem.current.currentSelectedGameObject.GetComponent<Plan>().idx;
@@ -251,15 +323,114 @@ public class PlanManager : MonoBehaviour
         memoObject.SetActive(state);
     }
 
+    public void ActivateEdit(bool state)
+    {
+        editObject.SetActive(state);
+    }
+
+    public void ActivateEditName(bool state)
+    {
+        editNameObject.SetActive(state);
+
+        if (state) ActivateEdit(false);
+        else editNameText.text = "";
+    }
+    
+    public void EditName()
+    {
+        planInfos[currentPlanIdx].planName = editNameText.text;
+        editNameText.text = "";
+        initPlan(currentPlanIdx);
+        ActivateEditName(false);
+    }
+
+    public void DeletePlan()
+    {
+        ActivateEdit(false);
+        planInfos.RemoveAt(currentPlanIdx);
+        JsonManager.CreateJsonFile(JsonManager.JSON_FILENAME_PLAN, planInfos);
+        init();
+        PanelManager.GetInstance().BackToMain();
+    }
+
     public void SaveDate(int date)
     {
         currentDate = date;
     }
 
+    public void SavePlan()
+    {
+        JsonManager.CreateJsonFile(JsonManager.JSON_FILENAME_PLAN, planInfos);
+
+        init();
+        PanelManager.GetInstance().BackToMain();
+    }
+
+    public void InitFindTravelPanel()
+    {
+        Dictionary<string, TravelInfo> datas = JsonManager.LoadJsonFile<Dictionary<string, TravelInfo>>(JsonManager.JSON_FILENAME_TRAVEL);
+
+        for (int i = findTravelViewport.childCount - 1; i >= 0; i--)
+        {
+            Destroy(findTravelViewport.GetChild(i).gameObject);
+        }
+
+        GameObject tempObject;
+        foreach (TravelInfo data in datas.Values)
+        {
+            tempObject = Instantiate(currentSearchButton, findTravelViewport, true);
+            tempObject.transform.localScale = new Vector3(1f, 1f, 1f);
+            tempObject.transform.GetChild(1).GetComponent<RawImage>().texture =
+                Resources.Load<Texture>("Sprites/Travels/" + data.code);
+            tempObject.transform.GetChild(2).GetComponent<TMP_Text>().text = data.name;
+            tempObject.transform.GetChild(3).GetComponent<TMP_Text>().text = data.address;
+            tempObject.transform.GetChild(4).GetComponent<Button>().onClick.AddListener(() => MoveDetailTravelPanel(data.code));
+            tempObject.transform.GetChild(5).GetComponent<Button>().onClick.AddListener(() => AddToPlan(data.name));
+        }
+    }
+
+    public void MoveDetailTravelPanel(string code)
+    {
+        foreach (KeyValuePair<string, TravelInfo> data in JsonManager.LoadJsonFile<Dictionary<string, TravelInfo>>(JsonManager
+                     .JSON_FILENAME_TRAVEL))
+        {
+            if (data.Key == code)
+            {
+                PanelManager.GetInstance().PushPanelToStack("detailTravel", data.Value);
+                currentTravelDetail = data.Value;
+                return;
+            }
+        }
+
+    }
+
     public void AddToPlan()
     {
+        int idx = 0;
+        for (int i = 0; i <= currentDate; i++)
+        {
+            idx += planInfos[currentPlanIdx].countADay[i];
+        }
         planInfos[currentPlanIdx].countADay[currentDate]++;
-        planInfos[currentPlanIdx].names.Add("세종 호수 공원");
+        
+        planInfos[currentPlanIdx].names.Insert(idx, currentTravelDetail.name);
+        JsonManager.CreateJsonFile(JsonManager.JSON_FILENAME_PLAN, planInfos);
+        initPlan(currentPlanIdx);
+
+        PanelManager.GetInstance().PopPanelFromStack();
+        PanelManager.GetInstance().PopPanelFromStack();
+    }
+
+    public void AddToPlan(string name)
+    {
+        int idx = 0;
+        for (int i = 0; i <= currentDate; i++)
+        {
+            idx += planInfos[currentPlanIdx].countADay[i];
+        }
+        planInfos[currentPlanIdx].countADay[currentDate]++;
+        
+        planInfos[currentPlanIdx].names.Insert(idx, name);
         JsonManager.CreateJsonFile(JsonManager.JSON_FILENAME_PLAN, planInfos);
         initPlan(currentPlanIdx);
 

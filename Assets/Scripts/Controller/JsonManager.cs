@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 public class JsonManager
 {
     public static string JSON_FILENAME_TRAVEL = "DataTable_Travel";
+    public static string JSON_FILENAME_RECOMMEND_PLAN = "DataTable_PlanRecommend";
     public static string JSON_FILENAME_PLAN = "DataTable_Plan";
 
     public static void CreateJsonFile(string fileName, object obj)

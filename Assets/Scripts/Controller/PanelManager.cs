@@ -2,17 +2,32 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class PanelManager : MonoBehaviour
 {
+    private static PanelManager instance;
+
+    private const float DEFAULT_SCREEN_WIDTH = 360f;
+    
     private const string PANEL_NAME_TRAVEL = "travel";
     private const string PANEL_NAME_TRAVEL_INFO = "travelInfo";
+    private const string PANEL_NAME_PLAN_CALENDAR = "calendarPlan";
+    private const string PANEL_NAME_MAKE_PLAN = "makePlan";
+    private const string PANEL_NAME_LOAD_PLAN = "loadPlan";
+    private const string PANEL_NAME_FIND_TRAVEL = "findTravel";
 
     private Stack<GameObject> panels;
+
+    public Transform mainViewport;
+    public Transform mainToggle;
 
     public GameObject mainPanel;
     public GameObject travelPanel;
     public GameObject travelInfoPanel;
+    public GameObject planCalendarPanel;
+    public GameObject makePlanPanel;
+    public GameObject findTravelPanel;
 
     public Transform travelScreen;
     
@@ -26,8 +41,17 @@ public class PanelManager : MonoBehaviour
 
     private void init()
     {
+        instance = this;
         panels = new Stack<GameObject>();
         panels.Push(mainPanel);
+    }
+    
+    public static PanelManager GetInstance()
+    {
+        if (instance != null) return instance;
+        instance = FindObjectOfType<PanelManager>();
+        if (instance == null) Debug.Log("There's no active PanelManager object");
+        return instance;
     }
 
     public void PushPanelToStack(string name)
@@ -37,14 +61,35 @@ public class PanelManager : MonoBehaviour
         {
             case PANEL_NAME_TRAVEL:
                 tempObject = travelPanel;
-                updateInfos<Travel>(travelScreen,
-                    JsonManager.LoadJsonFile<Dictionary<string, Travel>>(JsonManager.JSON_FILENAME_TRAVEL));
+                updateInfos(travelScreen,
+                    JsonManager.LoadJsonFile<Dictionary<string, TravelInfo>>(JsonManager.JSON_FILENAME_TRAVEL));
                 break;
             
             case PANEL_NAME_TRAVEL_INFO:
+                Travel tempTravel = EventSystem.current.currentSelectedGameObject.GetComponent<Travel>();
+                travelInfoPanel.GetComponent<TravelInfoPanel>().Init(tempTravel.code, tempTravel.name,
+                    tempTravel.address, tempTravel.rate);
                 tempObject = travelInfoPanel;
                 break;
             
+            case PANEL_NAME_PLAN_CALENDAR:
+                tempObject = planCalendarPanel;
+                break;
+            
+            case PANEL_NAME_MAKE_PLAN:
+                if (!PlanManager.GetInstance().SaveDate()) return;
+                PopPanelFromStack();
+                tempObject = makePlanPanel;
+                break;
+            
+            case PANEL_NAME_LOAD_PLAN:
+                tempObject = makePlanPanel;
+                break;
+            
+            case PANEL_NAME_FIND_TRAVEL:
+                tempObject = findTravelPanel;
+                break;
+
             default:
                 Debug.Log("Invalid panel name: " + name);
                 return;
@@ -62,10 +107,10 @@ public class PanelManager : MonoBehaviour
         panels.Peek().SetActive(true);
     }
 
-    private void updateInfos<T>(Transform panel, Dictionary<string, T> datas)
+    private void updateInfos(Transform panel, Dictionary<string, TravelInfo> datas)
     {
         clearPanelInfos(panel);
-        instantiatePanelInfos<T>(panel, datas);
+        instantiatePanelInfos(panel, datas);
     }
 
     private void clearPanelInfos(Transform panel)
@@ -76,12 +121,30 @@ public class PanelManager : MonoBehaviour
         }
     }
 
-    private void instantiatePanelInfos<T>(Transform panel, Dictionary<string, T> datas)
+    private void instantiatePanelInfos(Transform panel, Dictionary<string, TravelInfo> datas)
     {
-        foreach (KeyValuePair<string, T> data in datas)
+        foreach (KeyValuePair<string, TravelInfo> data in datas)
         {
-            Instantiate(infoBlock, panel, true);
+            GameObject tempObject = Instantiate(infoBlock, panel, true);
+            tempObject.transform.localScale = new Vector3(1f, 1f, 1f);
+            tempObject.GetComponent<Travel>().Init(data.Value.code, data.Value.name, data.Value.address,
+                data.Value.coordinates, data.Value.rate);
+            tempObject.GetComponent<Button>().onClick.AddListener(() => PushPanelToStack(PANEL_NAME_TRAVEL_INFO));
         }
+    }
 
+    public void UseMainNavigator(int index)
+    {
+        for (int i = 0; i < panels.Count; i++)
+        {
+            panels.Pop().SetActive(false);
+        }
+        panels.Push(mainPanel);
+        mainPanel.SetActive(true);
+        
+        mainViewport.localPosition = new Vector3(-index * DEFAULT_SCREEN_WIDTH, 0f, 0f);
+        mainToggle.localPosition = new Vector3(index * DEFAULT_SCREEN_WIDTH / 3, 0f, 0f);
+        mainToggle.localScale = new Vector3(1f, 1f, 1f);
+        //mainViewport.localPosition = new Vector3(-index * Screen.width, 0f, 0f);
     }
 }
